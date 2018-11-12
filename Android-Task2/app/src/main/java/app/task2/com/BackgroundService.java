@@ -28,52 +28,60 @@ public class BackgroundService extends Service
     public String MINUTES = "minutes";
     public String SECONDS = "seconds";
     private int sec = 0, min = 0, minutes = 4, seconds = 59;
-
+    
     @Override
     public void onCreate()
     {
         super.onCreate();
     }
-
-    private void createNotification()
+    
+    private void updateNotification()
     {
         final NotificationManager manager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O)
         {
             NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "NOTIFICATION_CHANNEL_NAME", importance);
+            notificationChannel.setVibrationPattern(new long[]{ 0 });
+            notificationChannel.enableVibration(true);
             manager.createNotificationChannel(notificationChannel);
         }
-
+        
         final NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setContentTitle("Scheduled Notification")
-                .setAutoCancel(true)
-                .setColor(getResources().getColor(R.color.colorPrimary))
-                .setContentText("Time Left :" + minutes + ":" + seconds)
-                .setAutoCancel(false)
-                .setOngoing(true)
-                .setSmallIcon(R.drawable.ic_launcher_background).setChannelId(NOTIFICATION_CHANNEL_ID);
-
-
+        .setAutoCancel(true)
+        .setColor(getResources().getColor(R.color.colorPrimary))
+        .setContentText("Time Left :" + minutes + ":" + seconds)
+        .setAutoCancel(false)
+        .setOngoing(true)
+        .setVibrate(new long[]{-1})
+        .setSmallIcon(R.drawable.ic_launcher_background).setChannelId(NOTIFICATION_CHANNEL_ID);
+        
+        
+        
+        
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                1,
-                new Intent(this, MainActivity.class),
-                PendingIntent.FLAG_UPDATE_CURRENT);
+                                                                1,
+                                                                new Intent(this, MainActivity.class),
+                                                                PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(pendingIntent);
-
-        manager.notify(1, builder.build());
-
-
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O)
+        {
+            startForeground(1, builder.build());
+        } else
+            manager.notify(1, builder.build());
+        
     }
-
+    
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         super.onStartCommand(intent, flags, startId);
         //start countdcownTimer for background notification to alive
-        startCountDownTimer(getextraValaue(intent));
-        return START_STICKY;
+        if (intent != null)
+            startCountDownTimer(getextraValaue(intent));
+        return START_REDELIVER_INTENT;
     }
-
+    
     private int getextraValaue(Intent intent)
     {
         // getting and setting countdowntimer previous value after service recreated by broadcast
@@ -83,16 +91,16 @@ public class BackgroundService extends Service
             int secondDifference = (int) TimeUnit.MILLISECONDS.toSeconds(timeStempDifference);
             min = intent.getIntExtra(MINUTES, 0);
             sec = intent.getIntExtra(SECONDS, 0);
-
+            
             int totalSecnds = (min * 60) + sec + secondDifference;
             minutes = 0;
             seconds = 0;
             min = totalSecnds / 60;
             seconds = totalSecnds % 60;
-
+            
             minutes = 4 - min;
             seconds = 59 - sec;
-
+            
             if (((min * 60) * 1000) > 300000)
             {
                 min = (((300000 / 1000) / 60));
@@ -102,18 +110,18 @@ public class BackgroundService extends Service
             }
             totalSecnds = (min * 60) + sec;
             int totalRunningSeconds = (int) (totalSecnds * 1000);
-
+            
             int remainingSeconds = (300000) - totalRunningSeconds;
-
+            
             if (remainingSeconds < 0)
                 remainingSeconds = 0;
-
+            
             return remainingSeconds;// remaning seconds
         } else
             return 300000;
     }
-
-
+    
+    
     @Override
     public void onDestroy()
     {
@@ -132,12 +140,12 @@ public class BackgroundService extends Service
             this.sendBroadcast(broadcastIntent);
         }
     }
-
+    
     public void startCountDownTimer(long miliseconds)
     {
         countDownTimer = new CountDownTimer(miliseconds, 1000)
         {
-
+            
             public void onTick(long millisUntilFinished)
             {
                 //here you can have your logic to set text to edittext
@@ -147,7 +155,7 @@ public class BackgroundService extends Service
                 {
                     min++;
                     sec = 0;
-
+                    
                     minutes--;
                     seconds = 59;
                 }
@@ -157,31 +165,31 @@ public class BackgroundService extends Service
                     countDownTimer.cancel();
                     finisServiceAndClearNotification();
                 } else
-                    createNotification();
+                    updateNotification();
             }
-
+            
             public void onFinish()
             {
                 // Time Finish service closed
                 finisServiceAndClearNotification();
             }
-
+            
         }.start();
     }
-
+    
     private void finisServiceAndClearNotification()
     {
         isTimeCompleted = true;
         clearNotification();
         stopSelf();
     }
-
+    
     private void clearNotification()
     {
         NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(1);
     }
-
+    
     public void stopCountDowntimertask()
     {
         if (countDownTimer != null)
@@ -190,7 +198,7 @@ public class BackgroundService extends Service
             countDownTimer = null;
         }
     }
-
+    
     @Nullable
     @Override
     public IBinder onBind(Intent intent)

@@ -17,18 +17,18 @@ public class MainActivity extends AppCompatActivity
     private BackgroundService mYourService;
     @BindView(R.id.tvTimer)
     TextView tvTimer;
-
+    
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-    }
-
-    public void startService(View view)
-    {
         mYourService = new BackgroundService();
         mServiceIntent = new Intent(this, mYourService.getClass());
+    }
+    
+    public void startService(View view)
+    {
         if (!isMyServiceRunning(mYourService.getClass()))
         {
             //Starting Background Service
@@ -38,8 +38,8 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "Background Notification is already running", Toast.LENGTH_SHORT).show();
         }
     }
-
-
+    
+    
     // Checking if service is running
     private boolean isMyServiceRunning(Class<?> serviceClass)
     {
@@ -53,12 +53,14 @@ public class MainActivity extends AppCompatActivity
         }
         return false;
     }
-
+    
     @Override
     protected void onDestroy()
     {
         //stop service and restarted by broadcast through service ondestroy
-        stopService(mServiceIntent);
+        if (mServiceIntent != null)
+            stopService(mServiceIntent);
         super.onDestroy();
     }
 }
+
